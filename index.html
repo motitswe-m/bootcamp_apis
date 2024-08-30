@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Bill API</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Welcome to the Phone Bill API</h1>
+            <p>This application helps you calculate your phone bill, set prices for calls and SMS, and check if you have enough airtime.</p>
+        </header>
+
+        <!-- Phone Bill Widget -->
+        <section class="phone-bill-widget">
+            <h2>Phone Bill Calculator</h2>
+
+            <!-- Enter Bill String -->
+            <div class="input-group">
+                <label>Enter your bill string (e.g., call,sms,call):</label>
+                <input x-model="billString" type="text" placeholder="call,sms,call">
+                <button @click="calculateTotal()">Calculate Total</button>
+            </div>
+
+            <!-- Display Total -->
+            <div x-show="total !== null" class="result">
+                <h3>Total Bill: R<span x-text="total"></span></h3>
+            </div>
+
+            <hr>
+
+            <!-- Update Prices -->
+            <h3>Set Prices</h3>
+
+            <div class="input-group">
+                <label>Set Call Price:</label>
+                <input x-model="callPrice" type="number" step="0.01">
+                <button @click="updatePrice('call')">Set Call Price</button>
+            </div>
+
+            <div class="input-group">
+                <label>Set SMS Price:</label>
+                <input x-model="smsPrice" type="number" step="0.01">
+                <button @click="updatePrice('sms')">Set SMS Price</button>
+            </div>
+
+            <!-- Display Success Message -->
+            <div x-show="message !== ''" class="message">
+                <p x-text="message"></p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function phoneBillApp() {
+            return {
+                billString: '',
+                total: null,
+                callPrice: 2.75,
+                smsPrice: 0.65,
+                message: '',
+
+                async calculateTotal() {
+                    try {
+                        const response = await fetch('/api/phonebill/total', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ bill: this.billString })
+                        });
+                        const data = await response.json();
+                        this.total = data.total;
+                    } catch (error) {
+                        console.error('Error calculating total:', error);
+                    }
+                },
+
+                async updatePrice(type) {
+                    try {
+                        const price = type === 'call' ? this.callPrice : this.smsPrice;
+                        const response = await fetch('/api/phonebill/price', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ type, price })
+                        });
+                        const data = await response.json();
+                        this.message = data.message;
+                    } catch (error) {
+                        console.error('Error setting price:', error);
+                    }
+                },
+
+                async fetchPrices() {
+                    try {
+                        const response = await fetch('/api/phonebill/prices');
+                        const data = await response.json();
+                        this.callPrice = data.call;
+                        this.smsPrice = data.sms;
+                    } catch (error) {
+                        console.error('Error fetching prices:', error);
+                    }
+                },
+
+                init() {
+                    this.fetchPrices();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
